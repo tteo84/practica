@@ -1,0 +1,66 @@
+#!/usr/bin/python
+import RPi.GPIO as GPIO
+import time
+import paho.mqtt.client as mqtt#
+import json
+
+
+
+MQTT_HOST = 'mqtt.beia-telemetrie.ro'
+MQTT_TOPIC= 'odsi/iorga-mircea'
+MQTT_PORT= 1883
+
+ 
+#GPIO SETUP
+channel1 = 21
+channel2 = 10
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(channel1, GPIO.IN)
+GPIO.setup(channel2, GPIO.IN)
+
+INTERVAL=2
+
+sensor_data = {'flame': 0, 'gas': 0}
+
+next_reading = time.time() 
+
+client = mqtt.Client()
+client.username_pw_set(MQTT_TOPIC)
+
+ 
+ 
+def callback(channel1):
+    print("flame detected")
+ 
+GPIO.add_event_detect(channel1, GPIO.BOTH, bouncetime=300)  # let us know when the pin goes HIGH or LOW
+GPIO.add_event_callback(channel1, callback)  # assign function to GPIO PIN, Run function on change
+def callback(channel2):
+    print("gas detected")
+ 
+GPIO.add_event_detect(channel2, GPIO.BOTH, bouncetime=300)  # let us know when the pin goes HIGH or LOW
+GPIO.add_event_callback(channel2, callback)  # assign function to GPIO PIN, Run function on change
+ 
+# infinite loop
+while True:
+        time.sleep(1)
+        
+        
+client.connect(MQTT_HOST, 1883, 60)
+
+client.loop_start()
+
+try:
+    while True:
+        payload_iorga=("gas_detect:gas","flame_detect:flame")
+        sensor_data['gas'] = gas
+        sensor_data['flame'] = flame
+        client.publish(MQTT_TOPIC, hostname=MQTT_HOST, payload=json.dumps(payload_iorga))
+        next_reading += INTERVAL
+        sleep_time = next_reading-time.time()
+        if sleep_time > 0:
+            time.sleep(sleep_time)
+except KeyboardInterrupt:
+    pass
+
+client.loop_stop()
+client.disconnect()        
